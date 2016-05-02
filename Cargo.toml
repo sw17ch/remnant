@@ -1,0 +1,6 @@
+[package]
+name = "remnant"
+version = "0.1.0"
+authors = ["John Van Enk <vanenkj@gmail.com>"]
+
+[dependencies]
