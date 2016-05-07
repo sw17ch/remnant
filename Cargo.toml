@@ -3,6 +3,14 @@ name = "remnant"
 version = "0.1.0"
 authors = ["John Van Enk <vanenkj@gmail.com>"]
 
+[lib]
+name = "remnant"
+path = "src/lib.rs"
+
+[[bin]]
+name = "remnant-exe"
+path = "src/main.rs"
+
 [dependencies]
-rust-crypto = "0.2.35"
+rust-crypto = { version = "0.2.35" }
 uuid = { version = "0.2", features = [ "v4" ] }
