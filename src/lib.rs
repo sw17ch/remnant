@@ -5,16 +5,27 @@ use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use uuid::Uuid;
 
-use std::collections::hash_map::{HashMap};
+use std::collections::hash_map::{HashMap,Values};
+use std::fmt;
+use std::cmp::{min};
 
 pub type Name = Vec<u8>;
-pub type GUID = [u8;16];
-pub type Anchor = [u8;32];
 
+#[derive(Debug)]
+pub struct UUID {
+    bytes: [u8;16]
+}
+
+#[derive(Debug,PartialEq,Eq,Hash,Clone)]
+pub struct Anchor {
+    bytes: [u8;32]
+}
+
+#[derive(Debug)]
 pub enum Payload {
     Timeline {
         name: Name,
-        guid: GUID,
+        uuid: UUID,
     },
     Append {
         ancestor: Anchor,
@@ -26,11 +37,13 @@ pub enum Payload {
     },
 }
 
+#[derive(Debug)]
 pub struct Event {
     anchor: Anchor,
     payload: Payload,
 }
 
+#[derive(Debug)]
 pub struct RemnantDB {
     events: HashMap<Anchor, Event>,
 }
@@ -38,31 +51,31 @@ pub struct RemnantDB {
 impl Payload {
     fn anchor(&self) -> Anchor {
         let mut hasher = Sha256::new();
-        let mut result: Anchor = [0;32];
+        let mut result = Anchor { bytes: [0;32] };
 
         match self {
-            &Payload::Timeline { name: ref n, guid: ref g } => {
+            &Payload::Timeline { name: ref n, uuid: ref g } => {
                 hasher.input(n);
-                hasher.input(g);
+                hasher.input(&g.bytes);
             },
             &Payload::Append { ancestor: ref a, payload: ref p } => {
-                hasher.input(a);
+                hasher.input(&a.bytes);
                 hasher.input(p);
             },
             &Payload::Join { left: ref l , right: ref r } => {
-                hasher.input(l);
-                hasher.input(r);
+                hasher.input(&l.bytes);
+                hasher.input(&r.bytes);
             },
         }
 
-        hasher.result(&mut result);
+        hasher.result(&mut result.bytes);
 
         result
     }
 }
 
 impl Event {
-    pub fn anchor(&self) -> &[u8] {
+    pub fn anchor(&self) -> &Anchor {
         &self.anchor
     }
 
@@ -79,7 +92,7 @@ impl RemnantDB {
     pub fn create(&mut self, name: &[u8]) -> Anchor {
         let payload = Payload::Timeline {
             name: name.to_vec(),
-            guid: *Uuid::new_v4().as_bytes(),
+            uuid: UUID { bytes: *Uuid::new_v4().as_bytes() },
         };
         let a = payload.anchor();
 
@@ -88,7 +101,7 @@ impl RemnantDB {
             payload: payload,
         };
 
-        self.events.insert(a, e);
+        self.events.insert(a.clone(), e);
 
         a
     }
@@ -109,7 +122,7 @@ impl RemnantDB {
             payload: payload,
         };
 
-        self.events.insert(a, e);
+        self.events.insert(a.clone(), e);
 
         a
     }
@@ -130,9 +143,87 @@ impl RemnantDB {
             payload: payload,
         };
 
-        self.events.insert(a, e);
+        self.events.insert(a.clone(), e);
 
         a
+    }
+
+    pub fn iter(&self) -> Values<Anchor, Event> {
+        self.events.values()
+    }
+}
+
+fn slice_to_hex_string(bytes: &[u8]) -> String {
+    let strs: Vec<String> =
+        bytes.iter().map(|b| format!("{:02x}", b)).collect();
+    strs.concat()
+}
+
+impl fmt::Display for UUID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let g = Uuid::from_bytes(&self.bytes).unwrap();
+        write!(f, "{}", &g.hyphenated().to_string())
+    }
+}
+
+impl fmt::Display for Anchor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = slice_to_hex_string(&self.bytes[0..8]);
+        write!(f, "<{}>", &s)
+    }
+}
+
+impl fmt::Display for Payload {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            &Payload::Timeline {name: ref n, uuid: ref u} => {
+                let s = String::from_utf8((*n).clone());
+                let c = match s {
+                    Ok(valid_str) => format!("\"{}\"", valid_str),
+                    Err(_) => slice_to_hex_string(n),
+                };
+
+                format!("Timeline {} is {}", c, u)
+            },
+            &Payload::Append {ancestor: ref a, payload: ref p} => {
+                let s = String::from_utf8((*p).clone());
+                match s {
+                    Ok(valid_str) => {
+                        let rng = min(12, valid_str.len());
+                        format!("Append str {} <- \"{}\"", a, &valid_str[0..rng])
+                    }
+                    Err(_) => {
+                        let rng = min(12, p.len());
+                        format!("Append data {} <- {}", a, slice_to_hex_string(&p[0..rng]))
+                    },
+                }
+            },
+            &Payload::Join {left: ref l, right: ref r} => {
+                format!("Join {} + {}", l, r)
+            },
+        };
+
+        write!(f, "Payload::{}", s)
+    }
+}
+
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let &Event { anchor: ref a, payload: ref b } = self;
+
+        write!(f, "({} => {})", a, b)
+    }
+}
+
+impl fmt::Display for RemnantDB {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(f.write_str("[RemnantDB"));
+
+        for (_, ref event) in &self.events {
+            try!(write!(f, " {}", event));
+        }
+
+        write!(f, "]")
     }
 }
 
