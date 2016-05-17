@@ -157,6 +157,10 @@ impl RemnantDB {
     pub fn iter(&self) -> Values<Anchor, Event> {
         self.events.values()
     }
+
+    pub fn len(&self) -> usize {
+        self.events.len()
+    }
 }
 
 fn slice_to_hex_string(bytes: &[u8]) -> String {
@@ -174,7 +178,7 @@ impl fmt::Display for UUID {
 
 impl fmt::Display for Anchor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = slice_to_hex_string(&self.bytes[0..8]);
+        let s = slice_to_hex_string(&self.bytes[0..10]);
         write!(f, "<{}>", &s)
     }
 }
@@ -189,27 +193,27 @@ impl fmt::Display for Payload {
                     Err(_) => slice_to_hex_string(n),
                 };
 
-                format!("Timeline {} is {}", c, u)
+                format!("Timeline ({} is {})", c, u)
             },
             &Payload::Append {ancestor: ref a, payload: ref p} => {
                 let s = String::from_utf8((*p).clone());
                 match s {
                     Ok(valid_str) => {
                         let rng = min(12, valid_str.len());
-                        format!("Append str {} <- \"{}\"", a, &valid_str[0..rng])
+                        format!("Append ({} <- \"{}\")", a, &valid_str[0..rng])
                     }
                     Err(_) => {
                         let rng = min(12, p.len());
-                        format!("Append data {} <- {}", a, slice_to_hex_string(&p[0..rng]))
+                        format!("Append ({} <- {})", a, slice_to_hex_string(&p[0..rng]))
                     },
                 }
             },
             &Payload::Join {left: ref l, right: ref r} => {
-                format!("Join {} + {}", l, r)
+                format!("Join ({} + {})", l, r)
             },
         };
 
-        write!(f, "Payload::{}", s)
+        write!(f, "{}", s)
     }
 }
 
@@ -217,7 +221,7 @@ impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let &Event { anchor: ref a, payload: ref b } = self;
 
-        write!(f, "({} => {})", a, b)
+        write!(f, "({} -> {})", a, b)
     }
 }
 
