@@ -10,47 +10,71 @@ use std::fmt;
 use std::cmp::{min};
 pub type Name = Vec<u8>;
 
+/// UUIDs are used to uniquely identify a timeline. To generate this,
+/// the host machine needs to have a reasonably strong source of
+/// randomness.
 #[derive(Debug)]
 pub struct UUID {
     bytes: [u8;16]
 }
 
+/// Anchors are a hash of the event's data. They are used to uniquely
+/// identify an event.
 #[derive(Debug,PartialEq,Eq,Hash,Clone,Copy)]
 pub struct Anchor {
     bytes: [u8;32]
 }
 
+/// Payloads are a sum of timeline heads, appending events, and joins.
 #[derive(Debug)]
 pub enum Payload {
+    /// A timeline payload acts as the start of a timeline. It does
+    /// not refer to other events and comes before all other events in
+    /// the timeline. The anchor for a timeline is derived from both
+    /// the name and the UUID. This allows us to have distinct anchors
+    /// even for timelines with the same name.
     Timeline {
+        /// A name for the timeline.
         name: Name,
+
+        /// A universally unique identifier for the timeline.
         uuid: UUID,
     },
+
+    /// Append events allow new data to be concatenated into a
+    /// timeline.
     Append {
+        /// The anchor of this event's ancestor.
         ancestor: Anchor,
+
+        /// The data payload for this event.
         payload: Vec<u8>,
     },
+
+    /// A join allows to events to be marked as predecessors of the
+    /// join event. All events that follow the join are then known to
+    /// follow the left and right events of the join.
     Join {
+        /// One of the events in the join.
         left: Anchor,
+
+        /// One of the events in the join.
         right: Anchor,
     },
 }
 
+/// An anchor and a payload. The anchor is a hash of the data in the
+/// payload.
 #[derive(Debug)]
 pub struct Event {
     anchor: Anchor,
     payload: Payload,
 }
 
+///A map from Anchors to Events.
 #[derive(Debug)]
 pub struct RemnantDB {
     events: HashMap<Anchor, Event>,
-}
-
-#[derive(Debug)]
-pub struct AnchorRef<'a> {
-    anchor: Anchor,
-    db: &'a mut RemnantDB,
 }
 
 impl Payload {
