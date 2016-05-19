@@ -1,25 +1,47 @@
 extern crate remnant;
 
 use remnant::remnantdb;
+use std::io;
+use std::io::prelude::*;
+
+fn prompt(a: &remnant::remnantdb::Anchor) {
+    print!("{}$ ", a);
+    let _ = io::stdout().flush();
+}
+
+fn help() {
+    println!("exit - quit");
+    println!("help - list this help information");
+    println!("list - list all entries in the database");
+}
 
 fn main() {
     let mut r = remnantdb::RemnantDB::new();
 
-    let mut anchor = r.create_str("playground");
-    let root = anchor.clone();
+    let root = r.create_str("console");
+    let mut anchor = root;
 
-    anchor = r.append_str(&anchor, "this is a much longer \
-                                    string that should be \
-                                    truncated a bit when displayed");
+    let stdin = io::stdin();
 
-    for i in 0..10 {
-        let s = format!("append {}", i);
-        anchor = r.append_str(&anchor, &s);
-    }
+    prompt(&anchor);
 
-    r.join(&root, &anchor);
+    for line in stdin.lock().lines() {
+        let u = line.unwrap();
 
-    for v in r.iter() {
-        println!("{}", v);
+        match (&u).trim() {
+            "help" => help(),
+            "exit" => break,
+            "list" => {
+                for e in r.iter() {
+                    println!("{}", e);
+                }
+            },
+            "" => {},
+            s => {
+                anchor = r.append_str(&anchor, s);
+                println!("! {}", r.len());
+            },
+        }
+        prompt(&anchor);
     }
 }
