@@ -202,7 +202,7 @@ impl fmt::Display for UUID {
 
 impl fmt::Display for Anchor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let s = slice_to_hex_string(&self.bytes[0..10]);
+        let s = slice_to_hex_string(&self.bytes[0..4]);
         write!(f, "<{}>", &s)
     }
 }
