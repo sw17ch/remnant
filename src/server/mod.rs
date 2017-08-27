@@ -35,6 +35,7 @@ impl Encoder for RemnantCodec {
         let enc = serialize(&item, Infinite).unwrap();
         dst.put_u64::<BigEndian>(enc.len() as u64);
         dst.extend(enc);
+
         Ok(())
     }
 }
@@ -44,40 +45,38 @@ impl Decoder for RemnantCodec {
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<message::Request>, io::Error> {
-        let header_size = size_of::<u64>();
-        let total_len = src.len();
+        if let Ok(len) = Cursor::new(&src).read_u64::<BOBigEndian>() {
+            let header_size = size_of::<u64>();
+            let message_len = header_size + len as usize;
 
-        if total_len < header_size {
-            Ok(None)
-        } else {
-            let len = Cursor::new(&src).read_u64::<BOBigEndian>().unwrap() as usize;
-
-            if len == 0 {
-                /// A length of 0 is invalid.
-                println!("ERROR zero length");
-                Err(io::Error::new(io::ErrorKind::Other, "zero length"))
-            } else if len + header_size > total_len {
-                /// The buffer doesn't have enough data yet.
+            if src.len() < message_len {
                 println!("PENDING");
                 Ok(None)
             } else {
-                let msg = src.split_to(header_size + len);
-                let d = &msg[header_size..(header_size + len)];
+                let msg = src.split_to(message_len);
+                let msg_data = &msg[header_size..message_len];
 
-                match deserialize(d) {
-                    Ok(resp) => {
-                        println!("DEC: {:?}", resp);
-                        Ok(Some(resp))
-                    }
-                    Err(e) => {
-                        println!("ERROR bad decode [{:?}]", e);
-                        Err(io::Error::new(io::ErrorKind::Other, "bad decode"))
+                if 0 == msg_data.len() {
+                    println!("EMPTY!");
+                    Ok(Some(message::Request::Empty))
+                } else {
+                    match deserialize(msg_data) {
+                        Ok(resp) => {
+                            println!("DEC: {:?}", resp);
+                            Ok(Some(resp))
+                        }
+                        Err(e) => {
+                            println!("ERROR bad decode [{:?}]", e);
+                            Err(io::Error::new(io::ErrorKind::Other, "bad decode"))
+                        }
                     }
                 }
             }
+        } else {
+            Ok(None)
         }
     }
-}
+ }
 
 pub struct RemnantProto;
 
@@ -105,6 +104,7 @@ impl Service for RemnantService {
 
     fn call(&self, req: Self::Request) -> Self::Future {
         match req {
+            message::Request::Empty => future::ok(message::Response::Empty).boxed(),
             message::Request::Ping => future::ok(message::Response::Ping).boxed(),
         }
     }
