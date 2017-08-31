@@ -1,13 +1,8 @@
 use std::io;
-use std::io::Cursor;
-use std::str;
 use std::net::SocketAddr;
-use std::mem::size_of;
+use std::str;
 
-use bincode::{serialize, deserialize, Infinite};
-use bytes::{BufMut, BytesMut, BigEndian};
-use byteorder::ReadBytesExt;
-use byteorder::BigEndian as BOBigEndian;
+use bytes::{BytesMut};
 use futures::{future, Future, BoxFuture};
 use tokio_io::codec::Framed;
 use tokio_io::codec::{Encoder, Decoder};
@@ -17,12 +12,13 @@ use tokio_proto::pipeline::ServerProto;
 use tokio_service::Service;
 use message;
 
+use super::{wrap_size, unwrap_size};
+
 #[derive(Debug)]
 pub struct Config {
     pub local_addr: SocketAddr,
 }
 
-#[derive(Default)]
 pub struct RemnantCodec;
 
 impl Encoder for RemnantCodec {
@@ -30,13 +26,7 @@ impl Encoder for RemnantCodec {
     type Error = io::Error;
 
     fn encode(&mut self, item: message::Response, dst: &mut BytesMut) -> Result<(), io::Error> {
-        println!("ENC: {:?}", item);
-
-        let enc = serialize(&item, Infinite).unwrap();
-        dst.put_u64::<BigEndian>(enc.len() as u64);
-        dst.extend(enc);
-
-        Ok(())
+        wrap_size(&item, dst)
     }
 }
 
@@ -45,36 +35,7 @@ impl Decoder for RemnantCodec {
     type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<message::Request>, io::Error> {
-        if let Ok(len) = Cursor::new(&src).read_u64::<BOBigEndian>() {
-            let header_size = size_of::<u64>();
-            let message_len = header_size + len as usize;
-
-            if src.len() < message_len {
-                println!("PENDING");
-                Ok(None)
-            } else {
-                let msg = src.split_to(message_len);
-                let msg_data = &msg[header_size..message_len];
-
-                if 0 == msg_data.len() {
-                    println!("EMPTY!");
-                    Ok(Some(message::Request::Empty))
-                } else {
-                    match deserialize(msg_data) {
-                        Ok(resp) => {
-                            println!("DEC: {:?}", resp);
-                            Ok(Some(resp))
-                        }
-                        Err(e) => {
-                            println!("ERROR bad decode [{:?}]", e);
-                            Err(io::Error::new(io::ErrorKind::Other, "bad decode"))
-                        }
-                    }
-                }
-            }
-        } else {
-            Ok(None)
-        }
+        unwrap_size(src)
     }
  }
 
