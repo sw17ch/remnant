@@ -83,6 +83,26 @@ pub enum ValidationErr {
 
 
 impl Remnant {
+    /// The id of the Remnant
+    pub fn id(&self) -> &NodeId {
+        &self.id
+    }
+
+    /// The author of the Remnant
+    pub fn author(&self) -> &AuthorId {
+        &self.author
+    }
+
+    /// The content of the Remnant
+    pub fn content(&self) -> &Content {
+        &self.content
+    }
+
+    /// The signature of the Remnant
+    pub fn signature(&self) -> &Signature {
+        &self.signature
+    }
+
     /// Create a new Origin.
     pub fn origin(author: &Author, name: &str) -> Remnant {
         let c = Content::Origin { name: name.to_string() };
@@ -144,7 +164,7 @@ impl fmt::Display for Remnant {
 
 /// An identifier for a node that should be unique for a given
 /// timeline. This implementation uses a SHA256 for the Node ID.
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Hash)]
 pub struct NodeId(hash::Digest);
 
 impl NodeId {
