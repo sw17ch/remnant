@@ -1,0 +1,3 @@
+* Build index from timeline head to leaves.
+* The current data structure can go from a leaf to the head, but can't
+  find concurrent or later events.
