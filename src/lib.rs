@@ -15,4 +15,9 @@ pub mod author;
 ///! the whole thing on disk.
 pub mod universe;
 
+///! A protocol is the set of messages we send and recieve from peers
+///! in the network. These are typically meta messages about the
+///! authors and universes on each node in the network.
+pub mod protocol;
+
 mod util;
