@@ -1,12 +1,13 @@
-use std::fs;
-use std::path::{Path,PathBuf};
-use std::io;
-use std::io::{Read,Write};
 use std::default;
-use bincode;
+use std::fs;
+use std::io::{Read,Write};
+use std::io;
+use std::marker::PhantomData;
+use std::path::{Path,PathBuf};
 
 use serde;
 use serde_json;
+use bincode;
 
 const DEFAULT_WIDTH: usize = 1;
 const DEFAULT_LEVELS: usize = 2;
@@ -50,12 +51,13 @@ impl default::Default for Config {
 }
 
 #[derive(Debug)]
-pub struct Handle {
+pub struct Handle<T> {
     cfg: Config,
     root: String,
+    _phantom: PhantomData<T>,
 }
 
-pub fn open(path: &str) -> Result<Handle, io::Error> {
+pub fn open<T>(path: &str) -> Result<Handle<T>, io::Error> {
     let p = Path::new(path);
     let p_cfg = p.join("config.json");
 
@@ -78,6 +80,7 @@ pub fn open(path: &str) -> Result<Handle, io::Error> {
     Ok(Handle {
         cfg: cfg,
         root: path.to_string(),
+        _phantom: PhantomData,
     })
 }
 
@@ -95,8 +98,8 @@ fn err<T>(msg: &str) -> Result<T, io::Error> {
     Err(io::Error::new(io::ErrorKind::Other, msg))
 }
 
-impl Handle {
-    pub fn insert<T: Triefort>(&mut self, item: &T) -> io::Result<()> {
+impl<T: Triefort> Handle<T> {
+    pub fn insert(&mut self, item: &T) -> io::Result<()> {
         let k = item.key();
 
         if k.len() < self.cfg.min_key_size() {
@@ -122,7 +125,7 @@ impl Handle {
         }
     }
 
-    pub fn get<T: Triefort>(&mut self, key: &[u8]) -> io::Result<T> {
+    pub fn get(&mut self, key: &[u8]) -> io::Result<T> {
         let i: T = self.get_unchecked(key)?;
         if !i.check(key) {
             err("Item failed check.")
@@ -131,7 +134,7 @@ impl Handle {
         }
     }
 
-    pub fn get_unchecked<T: Triefort>(&mut self, key: &[u8]) -> io::Result<T> {
+    pub fn get_unchecked(&mut self, key: &[u8]) -> io::Result<T> {
         let p = Path::new(&self.root)
             .join(self.cfg.dir_from_key(key))
             .join(to_hex(key));
@@ -186,7 +189,7 @@ mod tests {
     #[test]
     fn it_works() {
         let tdir = tempdir::TempDir::new("triefort_test").unwrap();
-        let mut hdl = open(tdir.path().to_str().unwrap()).unwrap();
+        let mut hdl = open::<Thing>(tdir.path().to_str().unwrap()).unwrap();
         println!("hdl: {:?}", hdl);
 
         let t1_key = vec![1,2,3,4];

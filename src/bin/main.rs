@@ -1,9 +1,10 @@
 extern crate clap;
 extern crate remnant;
+extern crate serde_json;
 
 use clap::{App,Arg,SubCommand};
 use remnant::plan;
-use remnant::triefort;
+use remnant::remnant::Remnant;
 
 fn main() {
     let matches = App::new("remnant")
@@ -51,13 +52,33 @@ fn main() {
         .get_matches();
 
     plan::get_plan(&matches)
-        .map(|p| run_plan(&p))
+        .map(|mut p| run_plan(&mut p))
         .map_err(|e| println!("error: {}", e))
         .unwrap_or(());
 }
 
-fn run_plan(plan: &plan::Plan) {
+fn run_plan(plan: &mut plan::Plan) {
     println!("plan: {:?}", plan);
-    let tf = triefort::open(&plan.path);
-    println!("tf: {:?}", tf);
+
+    let r: Remnant = match &plan.command {
+        &plan::Command::Append { parent: ref p, body: ref b} => mk_valid_append(plan, p, b),
+        &plan::Command::Origin { name: ref n } => mk_valid_origin(plan, n),
+        &plan::Command::Join { left: ref l, right: ref r } => mk_valid_join(plan, l, r),
+    };
+
+    println!("remnant: {:?}", r);
+
+    plan.database.insert(&r).unwrap();
+}
+
+fn mk_valid_append(_plan: &plan::Plan, _parent: &str, _body: &[u8]) -> Remnant {
+    panic!("mk_valid_append")
+}
+
+fn mk_valid_origin(plan: &plan::Plan, name: &str) -> Remnant {
+    Remnant::origin(&plan.author, name)
+}
+
+fn mk_valid_join(_plan: &plan::Plan, _left: &str, _right: &str) -> Remnant {
+    panic!("mk_valid_join")
 }

@@ -5,7 +5,7 @@ use ::util;
 
 /// A description of an author. Contains the public and private key
 /// along with a hash of the public key.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Author {
     pk: sign::PublicKey,
     sk: sign::SecretKey,
@@ -47,7 +47,7 @@ impl Author {
 }
 
 /// An author ID. This is a hash of the Author's public key.
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct AuthorId(pub hash::Digest);
 
 impl AuthorId {

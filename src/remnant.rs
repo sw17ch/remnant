@@ -3,10 +3,11 @@ use sodiumoxide::crypto::sign;
 use std::fmt;
 use author::{Author, AuthorId};
 use util;
+use ::triefort;
 
 
 /// The primary storage container for all nodes in a Remnant database.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Remnant {
     /// The ID of the node. In this implementation, it's a SHA256 of
     /// the author and the content.
@@ -161,10 +162,16 @@ impl fmt::Display for Remnant {
     }
 }
 
+impl triefort::Triefort for Remnant {
+    fn key(&self) -> &[u8] {
+        self.id.bytes()
+    }
+}
+
 
 /// An identifier for a node that should be unique for a given
 /// timeline. This implementation uses a SHA256 for the Node ID.
-#[derive(PartialEq, Eq, Clone, Hash)]
+#[derive(PartialEq, Eq, Clone, Hash, Serialize, Deserialize)]
 pub struct NodeId(pub hash::Digest);
 
 impl NodeId {
@@ -192,7 +199,7 @@ impl fmt::Display for NodeId {
 
 
 /// The content variation allowed inside a Remnant.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub enum Content {
     /// The start of a Remnant timeline. It's just a string
     /// identifying the origin.
@@ -227,7 +234,7 @@ impl fmt::Debug for Content {
 
 /// A node body used with an Append. It is an arbitrary array of
 /// bytes.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Body(pub Vec<u8>);
 
 impl Body {
@@ -245,7 +252,7 @@ impl fmt::Debug for Body {
 }
 
 /// A signature for the message.
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Signature(sign::Signature);
 
 impl fmt::Debug for Signature {

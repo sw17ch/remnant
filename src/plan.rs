@@ -2,7 +2,14 @@ extern crate clap;
 use clap::{ArgMatches};
 use std::env::home_dir;
 use std::io;
-use std::path::{PathBuf};
+use std::io::{Read,Write};
+use ::author::Author;
+use ::triefort;
+use ::remnant::Remnant;
+use std::path::{PathBuf,Path};
+use std::fs;
+
+use serde_json;
 
 #[derive(Debug)]
 pub enum Command {
@@ -24,6 +31,9 @@ pub struct Plan {
     pub validate: bool,
     pub path: String,
     pub command: Command,
+
+    pub author: Author,
+    pub database: triefort::Handle<Remnant>,
 }
 
 pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
@@ -35,6 +45,9 @@ pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
         h.to_str().unwrap().to_string()
     };
 
+    let author = get_author(&path)?;
+    let database = get_database(&path)?;
+
     match a.subcommand() {
         ("append", Some(a)) => cmd_append(a),
         ("origin", Some(o)) => cmd_origin(o),
@@ -45,8 +58,41 @@ pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
             validate: !a.is_present("no-validate"),
             path: path,
             command: c,
+            author: author,
+            database: database,
         }
     })
+}
+
+fn get_author(path: &str) -> io::Result<Author> {
+    fs::create_dir_all(path)?;
+
+    let a_path = Path::new(path).join("author.json");
+
+    let a = if !a_path.exists() {
+        let a = Author::new();
+        let a_json = serde_json::to_string(&a)?;
+        let mut a_f = fs::File::create(&a_path)?;
+        a_f.write_all(a_json.as_bytes())?;
+
+        a
+    } else {
+        let mut a_f = fs::File::open(&a_path)?;
+        let mut a_str = String::new();
+        a_f.read_to_string(&mut a_str)?;
+        serde_json::from_str(&a_str)?
+    };
+
+    Ok(a)
+}
+
+fn get_database(path: &str) -> io::Result<triefort::Handle<Remnant>> {
+    fs::create_dir_all(path)?;
+
+    let triefort_path = Path::new(path).join("database");
+    let db = triefort::open(triefort_path.to_str().unwrap())?;
+
+    Ok(db)
 }
 
 fn cmd_append(a: &ArgMatches) -> io::Result<Command> {
