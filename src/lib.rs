@@ -1,4 +1,14 @@
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
+extern crate bincode;
+
+extern crate tempdir;
+
 extern crate sodiumoxide;
+extern crate clap;
 
 ///! A remnant is the primary representation of items in the Remnant
 ///! system. It's an identifier, an author identifier, some content,
@@ -21,3 +31,10 @@ pub mod universe;
 pub mod protocol;
 
 mod util;
+
+///! An execution plan for the command line client.
+pub mod plan;
+
+///! Triefort is an on-disk trie that stores objects by hash in a
+///! directory structure using tries.
+pub mod triefort;

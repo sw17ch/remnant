@@ -9,13 +9,13 @@ pub enum Request {
 
     /// The last messgae sent before a clean disconnect.
     Goodbye,
-     
+
     /// Look up the public key for the specified author.
     LookupAuthor(author::AuthorId),
 
     /// Look up a remnant that the peer may know about.
     LookupRemnant(remnant::NodeId),
-    
+
     /// Advertise a remnant by its Id.
     AdvertiseRemnant(remnant::NodeId),
 }
@@ -35,7 +35,7 @@ pub enum Response {
     /// We respond to a remnant lookup request possibly with the
     /// remnant and possibly with nothing.
     LookupRemnant(Option<remnant::Remnant>),
-    
+
     /// A trivial response is okay for an advertisement.
     AdvertiseRemnant,
 }
@@ -64,4 +64,14 @@ pub enum Response {
 // The tree can be crawled by performing a depth-first-search of the
 // decendants and then siblings. The DecendantsHash can be used to
 // detect whether or not new decendnats now exist under the root.
-
+//
+// ====
+//
+// Standing back, the most obvious way to store things is in a hash
+// table, but uppon closer inspection, this actually poses some
+// problems. In order to do synchronization, I need fast access to an
+// ordered list of the entries. The best structure to use to
+// synchronize this lists is almost certainly going to be a Merkle
+// tree anchored at a particular point in time (so that a list is
+// stable until synchronization has completed). The hash table won't
+// preserve a fast ordering, the hashes will likely cause.

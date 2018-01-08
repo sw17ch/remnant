@@ -165,7 +165,7 @@ impl fmt::Display for Remnant {
 /// An identifier for a node that should be unique for a given
 /// timeline. This implementation uses a SHA256 for the Node ID.
 #[derive(PartialEq, Eq, Clone, Hash)]
-pub struct NodeId(hash::Digest);
+pub struct NodeId(pub hash::Digest);
 
 impl NodeId {
     pub fn bytes(&self) -> &[u8] {
@@ -228,7 +228,7 @@ impl fmt::Debug for Content {
 /// A node body used with an Append. It is an arbitrary array of
 /// bytes.
 #[derive(PartialEq, Eq)]
-pub struct Body(Vec<u8>);
+pub struct Body(pub Vec<u8>);
 
 impl Body {
     pub fn bytes(&self) -> &[u8] {

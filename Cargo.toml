@@ -5,3 +5,9 @@ authors = ["John VanEnk <sw17ch@gmail.com>"]
 
 [dependencies]
 sodiumoxide = "0.0.16"
+clap = "2.29.0"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+bincode = "0.9"
+tempdir = "0.3"
