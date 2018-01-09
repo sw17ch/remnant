@@ -9,16 +9,12 @@ use serde;
 use serde_json;
 use bincode;
 
-const DEFAULT_WIDTH: usize = 1;
 const DEFAULT_LEVELS: usize = 2;
 
 /// Trieforts are contained in a parent directory.
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
-    /// The number of bytes to use at each level.
-    width: usize,
-
     /// Levels the number of levels to use. This is how many
     /// sub-directories will be created.
     levels: usize,
@@ -26,13 +22,13 @@ struct Config {
 
 impl Config {
     fn min_key_size(&self) -> usize {
-        1 + (self.width * self.levels)
+        1 + self.levels
     }
 
     fn dir_from_key(&self, key: &[u8]) -> PathBuf {
         let mut p = PathBuf::new();
 
-        for c in key.chunks(self.width).take(self.levels) {
+        for c in key.chunks(1).take(self.levels) {
             let hex = to_hex(c);
             p.push(hex);
         }
@@ -44,7 +40,6 @@ impl Config {
 impl default::Default for Config {
     fn default() -> Self {
         Config {
-            width: DEFAULT_WIDTH,
             levels: DEFAULT_LEVELS,
         }
     }
@@ -57,7 +52,7 @@ pub struct Handle<T> {
     _phantom: PhantomData<T>,
 }
 
-pub fn open<T>(path: &str) -> Result<Handle<T>, io::Error> {
+pub fn open<T: Triefort>(path: &str) -> Result<Handle<T>, io::Error> {
     let p = Path::new(path);
     let p_cfg = p.join("config.json");
 
@@ -94,8 +89,44 @@ fn to_hex(bytes: &[u8]) -> String {
     hex
 }
 
-fn err<T>(msg: &str) -> Result<T, io::Error> {
+fn err<T>(msg: &str) -> io::Result<T> {
     Err(io::Error::new(io::ErrorKind::Other, msg))
+}
+
+fn add_files(root: &PathBuf, key: &[u8], paths: &mut Vec<String>) {
+    let hex = to_hex(key);
+    let _ = fs::read_dir(root)
+        .map(|rd| {
+            for d in rd {
+                let _ = d.map(|p| {
+                    let path = p.path();
+                    if path.is_dir() {
+                        add_files(&root.join(&path), key, paths);
+                    } else {
+                        let filename = path.as_path().file_name().unwrap().to_str().unwrap();
+                        let c = &filename[0..hex.len()];
+
+                        if c == hex {
+                            paths.push(filename.to_string());
+                        }
+                    }
+                });
+            }
+        });
+}
+
+fn files_matching<'a, T>(hdl: &'a Handle<T>, key: &'a [u8]) -> io::Result<Vec<String>> {
+    let mut root = PathBuf::new();
+    root.push(&hdl.root);
+
+    for c in key.chunks(1).take(hdl.cfg.levels) {
+        root.push(&to_hex(c));
+    }
+
+    let mut file_paths: Vec<String> = Vec::new();
+    add_files(&root, key, &mut file_paths);
+
+    Ok(file_paths)
 }
 
 impl<T: Triefort> Handle<T> {
@@ -142,12 +173,15 @@ impl<T: Triefort> Handle<T> {
         if p.exists() {
             let mut v = Vec::new();
             let mut fh = fs::File::open(p)?;
-            let size = fh.read_to_end(&mut v).unwrap();
-            println!("read {} bytes", size);
+            let _ = fh.read_to_end(&mut v).unwrap();
             Ok(T::decode(&v))
         } else {
             err("Item not in triefort.")
         }
+    }
+
+    pub fn find_all_with_prefix<'a>(&'a mut self, key: &'a [u8]) -> io::Result<Vec<String>> {
+        files_matching(self, key)
     }
 }
 
@@ -177,7 +211,6 @@ mod tests {
     #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
     struct Thing {
         key: Vec<u8>,
-        value: String,
     }
 
     impl Triefort for Thing {
@@ -195,8 +228,8 @@ mod tests {
         let t1_key = vec![1,2,3,4];
         let t2_key = vec![5,6,7,8];
 
-        let t1 = Thing { key: t1_key.clone(), value: "Thing One".to_string() };
-        let t2 = Thing { key: t2_key.clone(), value: "Thing Two".to_string() };
+        let t1 = Thing { key: t1_key.clone() };
+        let t2 = Thing { key: t2_key.clone() };
 
         // First we check that we can insert things and that they end
         // up at the right path.
@@ -219,5 +252,25 @@ mod tests {
         // they match the original keys.
         assert_eq!(t1, hdl.get(&t1_key).unwrap());
         assert_eq!(t2, hdl.get(&t2_key).unwrap());
+    }
+
+    #[test]
+    fn find_all_finds_all_files() {
+        let tdir = tempdir::TempDir::new("triefort_test").unwrap();
+        let mut hdl = open::<Thing>(tdir.path().to_str().unwrap()).unwrap();
+
+        let t1 = Thing { key: vec![1,2,3,4,5] };
+        let t2 = Thing { key: vec![1,5,6,0,0] };
+        let t3 = Thing { key: vec![2,8,9,0,0] };
+        let t4 = Thing { key: vec![1,2,3,9,0] };
+
+        hdl.insert(&t1).unwrap();
+        hdl.insert(&t2).unwrap();
+        hdl.insert(&t3).unwrap();
+        hdl.insert(&t4).unwrap();
+
+        let found = hdl.find_all_with_prefix(&[1,2,3,4]).unwrap();
+
+        assert_eq!(vec!["0102030405"], found);
     }
 }

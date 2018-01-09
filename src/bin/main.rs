@@ -60,7 +60,7 @@ fn main() {
 fn run_plan(plan: &mut plan::Plan) {
     println!("plan: {:?}", plan);
 
-    let r: Remnant = match &plan.command {
+    let r = match &plan.command {
         &plan::Command::Append { parent: ref p, body: ref b} => mk_valid_append(plan, p, b),
         &plan::Command::Origin { name: ref n } => mk_valid_origin(plan, n),
         &plan::Command::Join { left: ref l, right: ref r } => mk_valid_join(plan, l, r),
