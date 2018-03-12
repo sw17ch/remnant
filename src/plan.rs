@@ -1,29 +1,21 @@
 extern crate clap;
-use clap::{ArgMatches};
+use clap::ArgMatches;
 use std::env::home_dir;
 use std::io;
-use std::io::{Read,Write};
-use ::author::Author;
-use ::triefort;
-use ::remnant::Remnant;
-use std::path::{PathBuf,Path};
+use std::io::{Read, Write};
+use author::Author;
+use triefort;
+use remnant::Remnant;
+use std::path::{Path, PathBuf};
 use std::fs;
 
 use serde_json;
 
 #[derive(Debug)]
 pub enum Command {
-    Append {
-        parent: String,
-        body: Vec<u8>,
-    },
-    Origin {
-        name: String,
-    },
-    Join {
-        left: String,
-        right: String,
-    }
+    Append { parent: String, body: Vec<u8> },
+    Origin { name: String },
+    Join { left: String, right: String },
 }
 
 #[derive(Debug)]
@@ -53,14 +45,12 @@ pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
         ("origin", Some(o)) => cmd_origin(o),
         ("join", Some(j)) => cmd_join(j),
         (c, _) => err(&format!("unexpected subcommand: {}", c)),
-    }.map(|c| {
-        Plan {
-            validate: !a.is_present("no-validate"),
-            path: path,
-            command: c,
-            author: author,
-            database: database,
-        }
+    }.map(|c| Plan {
+        validate: !a.is_present("no-validate"),
+        path: path,
+        command: c,
+        author: author,
+        database: database,
     })
 }
 

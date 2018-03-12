@@ -1,14 +1,14 @@
 #[macro_use]
 extern crate serde_derive;
 
+extern crate bincode;
 extern crate serde;
 extern crate serde_json;
-extern crate bincode;
 
 extern crate tempdir;
 
-extern crate sodiumoxide;
 extern crate clap;
+extern crate sodiumoxide;
 
 ///! A remnant is the primary representation of items in the Remnant
 ///! system. It's an identifier, an author identifier, some content,

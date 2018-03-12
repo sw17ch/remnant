@@ -1,10 +1,11 @@
+use author::{Author, AuthorId};
 use sodiumoxide::crypto::hash::sha256 as hash;
 use sodiumoxide::crypto::sign;
 use std::fmt;
-use author::{Author, AuthorId};
+use std::io::{Read, Write};
+use std::io;
 use util;
-use ::triefort;
-
+use triefort;
 
 /// The primary storage container for all nodes in a Remnant database.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,7 +66,6 @@ pub fn build_remnant_from_parts(
         content: content,
         signature: signature,
     }
-
 }
 
 /// Describes the sort of validation issues encountered when
@@ -81,7 +81,6 @@ pub enum ValidationErr {
     /// The Remnants `Signature` (left) and the computed `Signature` (right)
     SignatureMismatch(Signature, Signature),
 }
-
 
 impl Remnant {
     /// The id of the Remnant
@@ -106,7 +105,9 @@ impl Remnant {
 
     /// Create a new Origin.
     pub fn origin(author: &Author, name: &str) -> Remnant {
-        let c = Content::Origin { name: name.to_string() };
+        let c = Content::Origin {
+            name: name.to_string(),
+        };
         build_remnant(author, c)
     }
 
@@ -153,11 +154,10 @@ impl Remnant {
 
 impl fmt::Display for Remnant {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-               "Remnant(id: {}, author: {}, signature: {})",
-               self.id,
-               self.author,
-               self.signature,
+        write!(
+            f,
+            "Remnant(id: {}, author: {}, signature: {})",
+            self.id, self.author, self.signature,
         )
     }
 }
@@ -168,6 +168,21 @@ impl triefort::Triefort for Remnant {
     }
 }
 
+impl triefort::Handle<Remnant> {
+    pub fn trace(&mut self, r: &Remnant) -> io::Result<Vec<Remnant>> {
+        let mut i = r.id.clone();
+        let mut t: Vec<NodeId> = Vec::new();
+
+        loop {
+            let g = self.get(i.bytes());
+
+            match g {
+                Ok(r) => panic!("found: {:?}", r),
+                Err(e) => panic!("nope: {:?}", e),
+            }
+        }
+    }
+}
 
 /// An identifier for a node that should be unique for a given
 /// timeline. This implementation uses a SHA256 for the Node ID.
@@ -196,7 +211,6 @@ impl fmt::Display for NodeId {
         util::display_bytes(f, bytes)
     }
 }
-
 
 /// The content variation allowed inside a Remnant.
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
@@ -294,6 +308,10 @@ impl Content {
     }
 }
 
+fn err<T>(msg: &str) -> io::Result<T> {
+    Err(io::Error::new(io::ErrorKind::Other, msg))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -327,8 +345,18 @@ mod tests {
 
         assert_ne!(a1, a2);
 
-        let r1 = build_remnant(&a1, Content::Origin { name: "now what".to_string() });
-        let r2 = build_remnant(&a2, Content::Origin { name: "now what".to_string() });
+        let r1 = build_remnant(
+            &a1,
+            Content::Origin {
+                name: "now what".to_string(),
+            },
+        );
+        let r2 = build_remnant(
+            &a2,
+            Content::Origin {
+                name: "now what".to_string(),
+            },
+        );
 
         assert_ne!(r1, r2);
 

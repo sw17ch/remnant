@@ -1,9 +1,9 @@
 use std::default;
 use std::fs;
-use std::io::{Read,Write};
+use std::io::{Read, Write};
 use std::io;
 use std::marker::PhantomData;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde;
 use serde_json;
@@ -95,24 +95,23 @@ fn err<T>(msg: &str) -> io::Result<T> {
 
 fn add_files(root: &PathBuf, key: &[u8], paths: &mut Vec<String>) {
     let hex = to_hex(key);
-    let _ = fs::read_dir(root)
-        .map(|rd| {
-            for d in rd {
-                let _ = d.map(|p| {
-                    let path = p.path();
-                    if path.is_dir() {
-                        add_files(&root.join(&path), key, paths);
-                    } else {
-                        let filename = path.as_path().file_name().unwrap().to_str().unwrap();
-                        let c = &filename[0..hex.len()];
+    let _ = fs::read_dir(root).map(|rd| {
+        for d in rd {
+            let _ = d.map(|p| {
+                let path = p.path();
+                if path.is_dir() {
+                    add_files(&root.join(&path), key, paths);
+                } else {
+                    let filename = path.as_path().file_name().unwrap().to_str().unwrap();
+                    let c = &filename[0..hex.len()];
 
-                        if c == hex {
-                            paths.push(filename.to_string());
-                        }
+                    if c == hex {
+                        paths.push(filename.to_string());
                     }
-                });
-            }
-        });
+                }
+            });
+        }
+    });
 }
 
 fn files_matching<'a, T>(hdl: &'a Handle<T>, key: &'a [u8]) -> io::Result<Vec<String>> {
@@ -141,10 +140,8 @@ impl<T: Triefort> Handle<T> {
         // system. We should probably lock that down at some point so
         // that trieforts are transferrable.
 
-        let dir_path = Path::new(&self.root)
-            .join(self.cfg.dir_from_key(k));
-        let item_path = dir_path
-            .join(to_hex(k));
+        let dir_path = Path::new(&self.root).join(self.cfg.dir_from_key(k));
+        let item_path = dir_path.join(to_hex(k));
 
         if item_path.exists() {
             err("Item already exists.")
@@ -186,8 +183,9 @@ impl<T: Triefort> Handle<T> {
 }
 
 pub trait Triefort
-    where Self: serde::Serialize + serde::de::DeserializeOwned {
-
+where
+    Self: serde::Serialize + serde::de::DeserializeOwned,
+{
     fn encode(&self) -> Vec<u8> {
         bincode::serialize(self, bincode::Infinite).unwrap()
     }
@@ -225,25 +223,23 @@ mod tests {
         let mut hdl = open::<Thing>(tdir.path().to_str().unwrap()).unwrap();
         println!("hdl: {:?}", hdl);
 
-        let t1_key = vec![1,2,3,4];
-        let t2_key = vec![5,6,7,8];
+        let t1_key = vec![1, 2, 3, 4];
+        let t2_key = vec![5, 6, 7, 8];
 
-        let t1 = Thing { key: t1_key.clone() };
-        let t2 = Thing { key: t2_key.clone() };
+        let t1 = Thing {
+            key: t1_key.clone(),
+        };
+        let t2 = Thing {
+            key: t2_key.clone(),
+        };
 
         // First we check that we can insert things and that they end
         // up at the right path.
         hdl.insert(&t1).unwrap();
         hdl.insert(&t2).unwrap();
 
-        let t1_path = tdir.path()
-            .join("01")
-            .join("02")
-            .join("01020304");
-        let t2_path = tdir.path()
-            .join("05")
-            .join("06")
-            .join("05060708");
+        let t1_path = tdir.path().join("01").join("02").join("01020304");
+        let t2_path = tdir.path().join("05").join("06").join("05060708");
 
         assert!(t1_path.exists());
         assert!(t2_path.exists());
@@ -259,17 +255,25 @@ mod tests {
         let tdir = tempdir::TempDir::new("triefort_test").unwrap();
         let mut hdl = open::<Thing>(tdir.path().to_str().unwrap()).unwrap();
 
-        let t1 = Thing { key: vec![1,2,3,4,5] };
-        let t2 = Thing { key: vec![1,5,6,0,0] };
-        let t3 = Thing { key: vec![2,8,9,0,0] };
-        let t4 = Thing { key: vec![1,2,3,9,0] };
+        let t1 = Thing {
+            key: vec![1, 2, 3, 4, 5],
+        };
+        let t2 = Thing {
+            key: vec![1, 5, 6, 0, 0],
+        };
+        let t3 = Thing {
+            key: vec![2, 8, 9, 0, 0],
+        };
+        let t4 = Thing {
+            key: vec![1, 2, 3, 9, 0],
+        };
 
         hdl.insert(&t1).unwrap();
         hdl.insert(&t2).unwrap();
         hdl.insert(&t3).unwrap();
         hdl.insert(&t4).unwrap();
 
-        let found = hdl.find_all_with_prefix(&[1,2,3,4]).unwrap();
+        let found = hdl.find_all_with_prefix(&[1, 2, 3, 4]).unwrap();
 
         assert_eq!(vec!["0102030405"], found);
     }

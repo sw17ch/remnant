@@ -1,7 +1,7 @@
 use sodiumoxide::crypto::sign;
 use sodiumoxide::crypto::hash::sha256 as hash;
 use std::fmt;
-use ::util;
+use util;
 
 /// A description of an author. Contains the public and private key
 /// along with a hash of the public key.

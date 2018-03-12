@@ -1,5 +1,5 @@
-use ::author;
-use ::remnant;
+use author;
+use remnant;
 
 #[derive(Debug)]
 pub enum Request {
@@ -39,7 +39,6 @@ pub enum Response {
     /// A trivial response is okay for an advertisement.
     AdvertiseRemnant,
 }
-
 
 // What I've got above will work if both peers announce their entire
 // library when either connects, but this doesn't make a lot of

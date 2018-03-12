@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use ::author;
-use ::remnant;
+use author;
+use remnant;
 
 /// A Universe contains two collections:
 ///    * The known author identifiers and their public keys
