@@ -1,13 +1,13 @@
 extern crate clap;
+use author::Author;
 use clap::ArgMatches;
+use remnant::Remnant;
 use std::env::current_dir;
+use std::fs;
 use std::io;
 use std::io::{Read, Write};
-use author::Author;
-use triefort;
-use remnant::Remnant;
 use std::path::{Path, PathBuf};
-use std::fs;
+use triefort;
 
 use serde_json;
 
@@ -45,7 +45,8 @@ pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
         ("origin", Some(o)) => cmd_origin(o),
         ("join", Some(j)) => cmd_join(j),
         (c, _) => err(&format!("unexpected subcommand: {}", c)),
-    }.map(|c| Plan {
+    }
+    .map(|c| Plan {
         validate: !a.is_present("no-validate"),
         path: path,
         command: c,

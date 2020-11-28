@@ -1,5 +1,5 @@
-use sodiumoxide::crypto::sign;
 use sodiumoxide::crypto::hash::sha256 as hash;
+use sodiumoxide::crypto::sign;
 use std::fmt;
 use util;
 

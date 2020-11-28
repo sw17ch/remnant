@@ -1,13 +1,13 @@
 use std::default;
 use std::fs;
-use std::io::{Read, Write};
 use std::io;
+use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
+use bincode;
 use serde;
 use serde_json;
-use bincode;
 
 const DEFAULT_LEVELS: usize = 2;
 

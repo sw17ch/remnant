@@ -3,8 +3,8 @@ use sodiumoxide::crypto::hash::sha256 as hash;
 use sodiumoxide::crypto::sign;
 use std::fmt;
 use std::io;
-use util;
 use triefort;
+use util;
 
 /// The primary storage container for all nodes in a Remnant database.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
