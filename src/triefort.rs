@@ -187,7 +187,7 @@ where
     Self: serde::Serialize + serde::de::DeserializeOwned,
 {
     fn encode(&self) -> Vec<u8> {
-        bincode::serialize(self, bincode::Infinite).unwrap()
+        bincode::serialize(self).unwrap()
     }
 
     fn decode(enc: &[u8]) -> Self {

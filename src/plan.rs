@@ -1,6 +1,6 @@
 extern crate clap;
 use clap::ArgMatches;
-use std::env::home_dir;
+use std::env::current_dir;
 use std::io;
 use std::io::{Read, Write};
 use author::Author;
@@ -32,7 +32,7 @@ pub fn get_plan(a: &ArgMatches) -> io::Result<Plan> {
     let path = if a.is_present("path") {
         a.value_of("path").unwrap().to_string()
     } else {
-        let mut h = home_dir().unwrap_or(PathBuf::from("/"));
+        let mut h = current_dir().unwrap_or(PathBuf::from("/"));
         h.push(".remnant");
         h.to_str().unwrap().to_string()
     };

@@ -2,7 +2,6 @@ use author::{Author, AuthorId};
 use sodiumoxide::crypto::hash::sha256 as hash;
 use sodiumoxide::crypto::sign;
 use std::fmt;
-use std::io::{Read, Write};
 use std::io;
 use util;
 use triefort;
@@ -170,8 +169,7 @@ impl triefort::Triefort for Remnant {
 
 impl triefort::Handle<Remnant> {
     pub fn trace(&mut self, r: &Remnant) -> io::Result<Vec<Remnant>> {
-        let mut i = r.id.clone();
-        let mut t: Vec<NodeId> = Vec::new();
+        let i = r.id.clone();
 
         loop {
             let g = self.get(i.bytes());
@@ -306,10 +304,6 @@ impl Content {
             }
         }
     }
-}
-
-fn err<T>(msg: &str) -> io::Result<T> {
-    Err(io::Error::new(io::ErrorKind::Other, msg))
 }
 
 #[cfg(test)]
